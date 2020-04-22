@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,IE=IE9">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="renderer" content="webkit">
+    <meta name="referrer" content="never">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="format-detection" content="telephone=no">
+    <title>列表</title>
+    <link rel="stylesheet" href="css/common.css">
+</head>
+<body>
+<div class="list_box">
+    <div class="add_btn item">
+        <button onclick="openDialog()">新增</button>
+    </div>
+    <div class="item">
+        <table>
+            <thead>
+            <tr>
+                <th>姓名</th>
+                <th>地址</th>
+                <th>电话</th>
+                <th style="width: 120px;">操作</th>
+            </tr>
+            </thead>
+            <tbody class="tabBody"></tbody>
+        </table>
+    </div>
+</div>
+<div class="dialog">
+    <div class="dialog_content">
+        <div class="item">
+            <span class="item_label">姓名：</span>
+            <input class="name" type="text">
+        </div>
+        <div class="item">
+            <span  class="item_label">地址：</span>
+            <input class="adr" type="textarea">
+        </div><div class="item">
+            <span  class="item_label">电话：</span>
+            <input class="tel" type="text">
+        </div>
+        <div class="item">
+            <button class="login" onclick="save()">保存</button>
+            <button class="login" onclick="closes()">关闭</button>
+        </div>
+    </div>
+</div>
+</body>
+<script type="application/javascript" src="js/jquery-3.5.0.min.js"></script>
+<script>
+    var tk=sessionStorage.getItem('tk');
+    var ary=[];
+    var id='';
+    loadData();
+    function openDialog() {
+        $('.dialog').addClass('show');
+        $('.name').val('');
+        $('.adr').val('');
+        $('.tel').val('');
+        id='';
+    }
+    function save() {
+        var name=$('.name').val();
+        var adr=$('.adr').val();
+        var tel=$('.tel').val();
+        if(name===''||adr===''||tel===''){
+            alert('每一项都必填！');
+            return false
+        }
+        $.ajax({
+            headers: {
+                "token":tk, //用户token
+                'Content-Type': 'application/json;charset=utf-8'
+
+            },
+            type: "POST",
+            url: "/user/save",
+            dataType: "json",
+            contentType: 'application/json;charset=utf-8',
+            data: JSON.stringify({
+                name:name,
+                address:adr,
+                phone:tel,
+                id:id
+            }),
+            success: function(res){
+                if(res.code==0){
+                    alert('保存成功！');
+                    closes();
+                    loadData();
+                }else if(res.code = 404){
+                    location.href='index.html';
+                } else{
+                    alert(res.data.message);
+                }
+            },
+            error: function(data){
+                alert('系统错误');
+            }
+        });
+    }
+    function closes() {
+        $('.dialog').removeClass('show');
+    }
+    function loadData() {
+        $.ajax({
+            type: "GET",
+            url: "/user/list?token="+tk,
+            dataType: "json",
+            success: function(res){
+                if(res.code==0){
+                    var list='';
+                    ary=res.data;
+                    for(var i=0;i<ary.length;i++){
+                        list=list+'<tr><td>'+ary[i].name+'</td><td>'+ary[i].address+'</td><td>'+ary[i].phone+'</td>' +
+                            '<td><button class="edit" vId="'+i+'">编辑</button><button class="delete" vId="'+i+'">删除</button></td></tr>'
+                    }
+                    $('.tabBody').html(list);
+                }else if(res.code = 404){
+                    location.href='index.html';
+                } else{
+                    alert(res.message);
+                }
+            },
+            error: function(data){
+                alert('系统错误');
+            }
+        });
+    }
+    $('.tabBody').on('click','.edit',function (event) {
+        var ix=$(event.target).attr('vId');
+        $('.dialog').addClass('show');
+        $('.name').val(ary[ix].name);
+        $('.adr').val(ary[ix].address);
+        $('.tel').val(ary[ix].phone);
+        id=ary[ix].id;
+    });
+
+    $('.tabBody').on('click','.delete',function (event) {
+        var ix=$(event.target).attr('vId');
+        id=ary[ix].id;
+        $.ajax({
+            headers: {
+                "token":tk//此处放置请求到的用户token
+            },
+            type: "POST",
+            url: "/user/delete?id="+id,
+            dataType: "json",
+            success: function(res){
+                if(res.code==0){
+                    alert('删除成功！');
+                    loadData();
+                }else if(res.code = 404){
+                    location.href='index.html';
+                } else{
+                    alert(res.message);
+                }
+            },
+            error: function(data){
+                alert('系统错误');
+            }
+        });
+    })
+</script>
+</html>
